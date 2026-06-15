@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>DeepSeek V4-Flash · 可编辑对话</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .app {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        /* 左侧配置面板 */
+        .config-panel {
+            flex: 1.2;
+            min-width: 260px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .config-panel h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-left: 4px solid #3b82f6;
+            padding-left: 12px;
+        }
+        .config-group {
+            margin-bottom: 20px;
+        }
+        .config-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #334155;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        .top-p-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .top-p-row input[type="range"] {
+            flex: 1;
+        }
+        .top-p-row span {
+            width: 45px;
+            text-align: center;
+            background: #f1f5f9;
+            padding: 6px 0;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            margin-top: 8px;
+        }
+        button.secondary {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        button.danger {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        button:hover {
+            filter: brightness(0.96);
+            transform: translateY(-1px);
+        }
+        /* 右侧对话区 */
+        .chat-panel {
+            flex: 3;
+            min-width: 320px;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 65vh;
+            background: #fefefe;
+        }
+        .msg {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .msg-user {
+            align-items: flex-end;
+        }
+        .msg-ai {
+            align-items: flex-start;
+        }
+        .bubble {
+            max-width: 85%;
+            padding: 12px 18px;
+            border-radius: 24px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            position: relative;
+        }
+        .msg-user .bubble {
+            background: #3b82f6;
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+        .msg-ai .bubble {
+            background: #f1f5f9;
+            color: #1e293b;
+            border-bottom-left-radius: 6px;
+        }
+        .timestamp {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin: 4px 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .edit-icon {
+            cursor: pointer;
+            font-size: 0.8rem;
+            opacity: 0.6;
+            transition: 0.2s;
+        }
+        .edit-icon:hover {
+            opacity: 1;
+            color: #3b82f6;
+        }
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+            background: white;
+        }
+        textarea#userInput {
+            width: 100%;
+            border-radius: 28px;
+            resize: vertical;
+            font-size: 0.95rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .action-buttons button {
+            margin-top: 0;
+            width: auto;
+            flex: 1;
+        }
+        hr {
+            margin: 15px 0;
+            border-color: #eef2ff;
+        }
+        .info-text {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- 左侧配置区 -->
+    <div class="config-panel">
+        <h3>⚙️ 模型 & 设定</h3>
+        <div class="config-group">
+            <label>🔑 DeepSeek API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="sk-xxxxxxxx" autocomplete="off">
+            <div class="info-text">保存在浏览器本地，不会上传</div>
+        </div>
+        <div class="config-group">
+            <label>🤖 模型名称</label>
+            <input type="text" id="modelName" value="deepseek-v4-flash" readonly disabled style="background:#f8fafc;">
+            <div class="info-text">v4-flash 调用名称 → deepseek-v4-flash</div>
+        </div>
+        <div class="config-group">
+            <label>🎛️ Top-p (采样温度替代参数)</label>
+            <div class="top-p-row">
+                <input type="range" id="topP" min="0.1" max="1.0" step="0.01" value="0.9">
+                <span id="topPValue">0.90</span>
+            </div>
+        </div>
+        <div class="config-group">
+            <label>📝 系统角色设定 (System Prompt)</label>
+            <textarea id="systemPrompt" rows="4" placeholder="例如：你是一位精通编程的技术专家，请用中文简洁回答，并给出示例代码。">你是一个有用且无害的AI助手，请用中文回答。</textarea>
+        </div>
+        <hr>
+        <button id="clearChatBtn" class="danger">🗑️ 清空对话记录</button>
+        <button id="exportMdBtn" class="secondary">📄 导出对话为 Markdown</button>
+        <div class="info-text">※ 点击用户消息旁的 ✏️ 可修改并重新发送（会删除后续对话）</div>
+    </div>
+
+    <!-- 右侧聊天区 -->
+    <div class="chat-panel">
+        <div class="messages" id="messagesContainer">
+            <!-- 动态渲染对话 -->
+        </div>
+        <div class="input-area">
+            <textarea id="userInput" rows="2" placeholder="输入消息... (Shift+Enter 换行，Enter 发送)"></textarea>
+            <div class="action-buttons">
+                <button id="sendBtn">🚀 发送</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- DOM 元素 ----------
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const topPSlider = document.getElementById('topP');
+    const topPValueSpan = document.getElementById('topPValue');
+    const systemPromptTextarea = document.getElementById('systemPrompt');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearChatBtn = document.getElementById('clearChatBtn');
+    const exportMdBtn = document.getElementById('exportMdBtn');
+
+    // 会话存储：对话历史 [{ role, content }]
+    let conversationHistory = [];   // 不包含 system，只存储 user/assistant
+
+    // 是否正在等待 API 响应
+    let isWaiting = false;
+
+    // ---------- 初始化加载本地存储 ----------
+    function loadSettings() {
+        const savedKey = localStorage.getItem('deepseek_api_key');
+        if (savedKey) apiKeyInput.value = savedKey;
+        const savedTopP = localStorage.getItem('deepseek_top_p');
+        if (savedTopP) {
+            topPSlider.value = savedTopP;
+            topPValueSpan.innerText = parseFloat(savedTopP).toFixed(2);
+        }
+        const savedSystem = localStorage.getItem('deepseek_system_prompt');
+        if (savedSystem) systemPromptTextarea.value = savedSystem;
+        const savedHistory = localStorage.getItem('deepseek_conversation');
+        if (savedHistory) {
+            try {
+                conversationHistory = JSON.parse(savedHistory);
+                renderMessages();
+            } catch(e) { console.warn(e); }
+        } else {
+            renderMessages(); // 显示欢迎语
+        }
+    }
+
+    function saveApiKey() {
+        localStorage.setItem('deepseek_api_key', apiKeyInput.value);
+    }
+    function saveTopP() {
+        localStorage.setItem('deepseek_top_p', topPSlider.value);
+    }
+    function saveSystemPrompt() {
+        localStorage.setItem('deepseek_system_prompt', systemPromptTextarea.value);
+    }
+    function saveConversation() {
+        localStorage.setItem('deepseek_conversation', JSON.stringify(conversationHistory));
+    }
+
+    apiKeyInput.addEventListener('input', saveApiKey);
+    topPSlider.addEventListener('input', () => {
+        const val = parseFloat(topPSlider.value).toFixed(2);
+        topPValueSpan.innerText = val;
+        saveTopP();
+    });
+    systemPromptTextarea.addEventListener('input', saveSystemPrompt);
+
+    // ---------- 辅助函数 ----------
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if(m === '&') return '&amp;';
+            if(m === '<') return '&lt;';
+            if(m === '>') return '&gt;';
+            return m;
+        }).replace(/\n/g, '<br>');
+    }
+
+    function getTimeStr() {
+        const now = new Date();
+        return `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    }
+
+    // 渲染对话（每条用户消息带编辑按钮）
+    function renderMessages() {
+        messagesContainer.innerHTML = '';
+        if (conversationHistory.length === 0) {
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'msg msg-ai';
+            welcomeDiv.innerHTML = `<div class="bubble">👋 配置好 API Key 并发送消息即可开始对话。<br>支持 top-p / 系统角色 / 导出 MD / 编辑用户消息。</div><div class="timestamp">系统</div>`;
+            messagesContainer.appendChild(welcomeDiv);
+            return;
+        }
+        for (let i = 0; i < conversationHistory.length; i++) {
+            const msg = conversationHistory[i];
+            const isUser = msg.role === 'user';
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${isUser ? 'msg-user' : 'msg-ai'}`;
+            const bubbleContent = escapeHtml(msg.content);
+            // 构建气泡内部
+            let bubbleHtml = `<div class="bubble">${bubbleContent}</div>`;
+            // 时间戳行
+            let timestampHtml = `<div class="timestamp"><span>${getTimeStr()}</span>`;
+            if (isUser) {
+                timestampHtml += `<span class="edit-icon" data-index="${i}" title="编辑此消息并重新发送">✏️ 编辑</span>`;
+            }
+            timestampHtml += `</div>`;
+            msgDiv.innerHTML = bubbleHtml + timestampHtml;
+            messagesContainer.appendChild(msgDiv);
+        }
+        // 绑定编辑按钮事件
+        document.querySelectorAll('.edit-icon').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(el.getAttribute('data-index'));
+                editUserMessage(index);
+            });
+        });
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // 编辑用户消息：弹出修改框，替换后重新发送
+    function editUserMessage(index) {
+        if (isWaiting) {
+            alert('请等待当前回复完成后再编辑');
+            return;
+        }
+        const originalMsg = conversationHistory[index];
+        if (!originalMsg || originalMsg.role !== 'user') return;
+        const newContent = prompt('编辑你的消息:', originalMsg.content);
+        if (newContent === null || newContent.trim() === '') return;
+        const trimmed = newContent.trim();
+        
+        // 删除从 index 开始到结尾的所有消息（包括这条用户消息）
+        conversationHistory.splice(index);
+        saveConversation();
+        // 重新渲染界面（显示被截断后的对话）
+        renderMessages();
+        // 以新内容发送（自动调用 API，会追加新用户消息和 AI 回复）
+        sendCustomMessage(trimmed);
+    }
+
+    // 发送自定义内容（不依赖输入框，且跳过输入框清空等）
+    async function sendCustomMessage(userMessage) {
+        if (isWaiting) return;
+        // 添加用户消息到历史并刷新界面
+        conversationHistory.push({ role: 'user', content: userMessage });
+        saveConversation();
+        renderMessages();
+
+        isWaiting = true;
+        sendBtn.disabled = true;
+        sendBtn.textContent = '⏳ AI 思考中...';
+
+        const reply = await callDeepSeekAPI(userMessage);
+
+        sendBtn.disabled = false;
+        sendBtn.textContent = '🚀 发送';
+        isWaiting = false;
+
+        if (reply) {
+            conversationHistory.push({ role: 'assistant', content: reply });
+            saveConversation();
+            renderMessages();
+        } else {
+            // 可选添加错误提示
+            conversationHistory.push({ role: 'assistant', content: '❌ 请求失败，请检查 API Key 或稍后再试。' });
+            saveConversation();
+            renderMessages();
+        }
+    }
+
+    // 核心 API 调用（复用原有逻辑，但接收 userMessage 参数）
+    async function callDeepSeekAPI(userMessage) {
+        const apiKey = apiKeyInput.value.trim();
+        if (!apiKey) {
+            alert('请先填写 DeepSeek API Key（在左侧配置面板）');
+            return null;
+        }
+        const systemPrompt = systemPromptTextarea.value.trim() || '你是一个有用的AI助手。';
+        const topP = parseFloat(topPSlider.value);
+        const model = "deepseek-v4-flash";
+
+        const apiMessages = [
+            { role: "system", content: systemPrompt },
+            ...conversationHistory.slice(0, -1), // 除了最后刚添加的 user 消息之外的历史（不包含当前 user）
+            { role: "user", content: userMessage }
+        ];
+
+        const requestBody = {
+            model: model,
+            messages: apiMessages,
+            temperature: 0.7,
+            top_p: topP,
+            max_tokens: 4096,
+            stream: false
+        };
+
+        try {
+            const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(`API 错误 ${response.status}: ${errData.error?.message || '未知错误'}`);
+            }
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (err) {
+            console.error('调用失败', err);
+            alert(`请求失败: ${err.message}\n可能原因：API Key 无效/额度不足/网络问题/CORS限制。若提示跨域，请安装 "Live Server" 或使用浏览器插件。`);
+            return null;
+        }
+    }
+
+    // 普通发送（从输入框获取内容）
+    async function sendMessageFromInput() {
+        if (isWaiting) {
+            alert('请等待上一轮回复完成');
+            return;
+        }
+        const userMsg = userInput.value.trim();
+        if (!userMsg) return;
+        userInput.value = '';
+        await sendCustomMessage(userMsg);
+        userInput.focus();
+    }
+
+    // 清空对话
+    function clearChat() {
+        if (confirm('确定清空所有对话记录吗？')) {
+            conversationHistory = [];
+            saveConversation();
+            renderMessages();
+        }
+    }
+
+    // 导出 Markdown
+    function exportMarkdown() {
+        if (conversationHistory.length === 0) {
+            alert('没有对话记录可导出');
+            return;
+        }
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}`;
+        let mdContent = `# DeepSeek V4-Flash 对话导出\n\n**导出时间**: ${getTimeStr()}\n**模型**: deepseek-v4-flash\n**Top-p 值**: ${topPSlider.value}\n**系统提示词**: ${systemPromptTextarea.value.replace(/\n/g, ' ')}\n\n---\n\n`;
+
+        for (let i = 0; i < conversationHistory.length; i++) {
+            const msg = conversationHistory[i];
+            const roleLabel = msg.role === 'user' ? '🧑 **用户**' : '🤖 **DeepSeek**';
+            mdContent += `### ${roleLabel}\n\n${msg.content}\n\n---\n\n`;
+        }
+        mdContent += `\n*本文件由本地工具生成，对话历史仅保存在您的浏览器中。*`;
+
+        const blob = new Blob([mdContent], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `deepseek_chat_${dateStr}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // 事件绑定
+    sendBtn.addEventListener('click', sendMessageFromInput);
+    clearChatBtn.addEventListener('click', clearChat);
+    exportMdBtn.addEventListener('click', exportMarkdown);
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessageFromInput();
+        }
+    });
+
+    // 启动
+    loadSettings();
+</script>
+</body>
+</html>
