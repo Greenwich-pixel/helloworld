@@ -17,14 +17,12 @@
             height: 100vh;
             overflow: hidden;
         }
-        /* 主布局使用 flex，移动端默认单列 */
         .app {
             display: flex;
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
         }
-        /* 右侧聊天区域（主区域） */
         .chat-panel {
             flex: 1;
             display: flex;
@@ -33,7 +31,7 @@
             overflow: hidden;
             width: 100%;
         }
-        /* 左侧配置面板 - 移动端作为抽屉菜单 */
+        /* 左侧配置抽屉 */
         .config-panel {
             position: fixed;
             top: 0;
@@ -53,7 +51,6 @@
         .config-panel.open {
             transform: translateX(0);
         }
-        /* 遮罩层 */
         .mask {
             position: fixed;
             top: 0;
@@ -67,7 +64,6 @@
         .mask.show {
             display: block;
         }
-        /* 顶部工具栏（移动端显示菜单按钮） */
         .top-bar {
             display: flex;
             align-items: center;
@@ -88,17 +84,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: 0.2s;
-        }
-        .menu-btn:hover {
-            background: #2563eb;
         }
         .title {
             font-weight: 600;
             font-size: 1.2rem;
             flex: 1;
         }
-        /* 桌面端样式覆盖 */
         @media (min-width: 768px) {
             .app {
                 flex-direction: row;
@@ -124,8 +115,6 @@
                 height: auto;
                 border-radius: 24px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                padding: 20px;
-                overflow-y: auto;
             }
             .mask {
                 display: none !important;
@@ -134,7 +123,6 @@
                 display: none;
             }
         }
-        /* 消息区域 */
         .messages {
             flex: 1;
             padding: 20px;
@@ -261,7 +249,7 @@
         hr {
             margin: 15px 0;
         }
-        /* 右下角可关闭提示 */
+        /* 右下角提示 */
         .tip-toast {
             position: fixed;
             bottom: 20px;
@@ -291,9 +279,6 @@
             width: auto;
             opacity: 0.7;
         }
-        .tip-toast .close-tip:hover {
-            opacity: 1;
-        }
         @media (max-width: 768px) {
             .tip-toast {
                 bottom: 70px;
@@ -302,18 +287,71 @@
                 padding: 6px 12px;
             }
         }
+        /* 自定义编辑弹框 */
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+        .edit-modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .edit-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+        }
+        .edit-modal-content h4 {
+            margin: 0 0 12px 0;
+            font-size: 1.1rem;
+        }
+        .edit-modal-content textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            resize: vertical;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .edit-modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .edit-modal-buttons button {
+            flex: 1;
+            margin-top: 0;
+        }
+        .edit-modal-buttons .cancel-btn {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
     </style>
 </head>
 <body>
 <div class="app">
-    <!-- 移动端顶部栏 -->
     <div class="top-bar">
         <button class="menu-btn" id="menuBtn">☰</button>
         <div class="title">DeepSeek V4</div>
     </div>
-    <!-- 遮罩层 -->
     <div class="mask" id="mask"></div>
-    <!-- 左侧配置抽屉 -->
     <div class="config-panel" id="configPanel">
         <h3>⚙️ 模型 & 设定</h3>
         <div class="config-group">
@@ -342,11 +380,8 @@
         <button id="exportMdBtn" class="secondary">📄 导出对话为 Markdown</button>
         <div class="info-text">※ 点击用户消息旁的 ✏️ 可修改并重新发送（会删除后续对话）</div>
     </div>
-    <!-- 右侧聊天区域 -->
     <div class="chat-panel">
-        <div class="messages" id="messagesContainer">
-            <!-- 动态渲染对话 -->
-        </div>
+        <div class="messages" id="messagesContainer"></div>
         <div class="input-area">
             <textarea id="userInput" rows="2" placeholder="输入消息... (Shift+Enter 换行，Enter 发送)"></textarea>
             <div class="action-buttons">
@@ -355,10 +390,21 @@
         </div>
     </div>
 </div>
-<!-- 右下角可关闭提示 -->
 <div id="tipToast" class="tip-toast">
     <span>💡 点击消息旁的 ✏️ 可编辑并重发</span>
     <button class="close-tip" id="closeTipBtn">✕</button>
+</div>
+
+<!-- 自定义编辑弹框 -->
+<div id="editModal" class="edit-modal">
+    <div class="edit-modal-content">
+        <h4>编辑你的消息</h4>
+        <textarea id="editTextarea" rows="6" placeholder="在此编辑你的消息..."></textarea>
+        <div class="edit-modal-buttons">
+            <button id="editCancelBtn" class="cancel-btn">取消</button>
+            <button id="editConfirmBtn">确定</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -377,10 +423,15 @@
     const mask = document.getElementById('mask');
     const tipToast = document.getElementById('tipToast');
     const closeTipBtn = document.getElementById('closeTipBtn');
+    // 编辑弹框
+    const editModal = document.getElementById('editModal');
+    const editTextarea = document.getElementById('editTextarea');
+    const editCancelBtn = document.getElementById('editCancelBtn');
+    const editConfirmBtn = document.getElementById('editConfirmBtn');
 
-    // 会话存储
     let conversationHistory = [];
     let isWaiting = false;
+    let pendingEditIndex = null; // 记录正在编辑的消息索引
 
     // 移动端抽屉控制
     function openPanel() {
@@ -394,17 +445,54 @@
     menuBtn.addEventListener('click', openPanel);
     mask.addEventListener('click', closePanel);
 
-    // 右下角提示关闭（永久，使用localStorage记录）
+    // 右下角提示关闭
     const tipClosed = localStorage.getItem('tipToastClosed');
-    if (tipClosed === 'true') {
-        tipToast.style.display = 'none';
-    }
+    if (tipClosed === 'true') tipToast.style.display = 'none';
     closeTipBtn.addEventListener('click', () => {
         tipToast.style.display = 'none';
         localStorage.setItem('tipToastClosed', 'true');
     });
 
-    // ---------- 加载本地存储 ----------
+    // 编辑弹框显示与隐藏
+    function showEditModal(originalText, index) {
+        editTextarea.value = originalText;
+        pendingEditIndex = index;
+        // 自动调整高度（根据内容）
+        editTextarea.style.height = 'auto';
+        editTextarea.style.height = Math.min(editTextarea.scrollHeight, window.innerHeight * 0.5) + 'px';
+        editModal.classList.add('active');
+        editTextarea.focus();
+    }
+    function hideEditModal() {
+        editModal.classList.remove('active');
+        pendingEditIndex = null;
+    }
+
+    // 确认编辑
+    async function confirmEdit() {
+        const newContent = editTextarea.value.trim();
+        if (newContent === '') {
+            alert('消息不能为空');
+            return;
+        }
+        hideEditModal();
+        if (pendingEditIndex === null) return;
+        // 删除从 pendingEditIndex 开始到结尾的所有消息
+        conversationHistory.splice(pendingEditIndex);
+        saveConversation();
+        renderMessages();
+        // 重新发送新消息
+        await sendCustomMessage(newContent);
+    }
+
+    editCancelBtn.addEventListener('click', hideEditModal);
+    editConfirmBtn.addEventListener('click', confirmEdit);
+    // 点击弹框背景关闭（可选）
+    editModal.addEventListener('click', (e) => {
+        if (e.target === editModal) hideEditModal();
+    });
+
+    // ---------- 本地存储 ----------
     function loadSettings() {
         const savedKey = localStorage.getItem('deepseek_api_key');
         if (savedKey) apiKeyInput.value = savedKey;
@@ -479,26 +567,13 @@
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const index = parseInt(el.getAttribute('data-index'));
-                editUserMessage(index);
+                const originalMsg = conversationHistory[index];
+                if (originalMsg && originalMsg.role === 'user') {
+                    showEditModal(originalMsg.content, index);
+                }
             });
         });
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function editUserMessage(index) {
-        if (isWaiting) {
-            alert('请等待当前回复完成后再编辑');
-            return;
-        }
-        const originalMsg = conversationHistory[index];
-        if (!originalMsg || originalMsg.role !== 'user') return;
-        const newContent = prompt('编辑你的消息:', originalMsg.content);
-        if (newContent === null || newContent.trim() === '') return;
-        const trimmed = newContent.trim();
-        conversationHistory.splice(index);
-        saveConversation();
-        renderMessages();
-        sendCustomMessage(trimmed);
     }
 
     async function sendCustomMessage(userMessage) {
