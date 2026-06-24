@@ -36,6 +36,8 @@
             --edit-modal-bg: white;
             --edit-modal-text: #1e293b;
             --edit-modal-border: #cbd5e1;
+            /* 顶部栏高度（移动端） */
+            --topbar-height: 48px;
         }
 
         [data-theme="dark"] {
@@ -73,20 +75,23 @@
         * {
             box-sizing: border-box;
         }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-body);
             margin: 0;
             padding: 0;
             color: var(--text-primary);
-            height: 100vh;
-            overflow: hidden;
             transition: background 0.3s, color 0.3s;
         }
         .app {
             display: flex;
             flex-direction: column;
             height: 100vh;
+            height: 100dvh; /* 动态视口高度，解决移动端浏览器工具栏遮挡问题 */
             overflow: hidden;
         }
         .chat-panel {
@@ -97,6 +102,7 @@
             overflow: hidden;
             width: 100%;
             transition: background 0.3s;
+            min-height: 0; /* 防止flex溢出 */
         }
         .config-panel {
             position: fixed;
@@ -131,45 +137,49 @@
         .mask.show {
             display: block;
         }
-        /* 顶部栏（移动端及桌面端） */
+        /* 顶部栏 - 移动端高度减半 */
         .top-bar {
             display: flex;
             align-items: center;
-            padding: 12px 16px;
+            padding: 6px 12px;
             background: var(--bg-panel);
             border-bottom: 1px solid var(--border-color);
-            gap: 12px;
+            gap: 10px;
             transition: background 0.3s, border-color 0.3s;
             flex-shrink: 0;
+            height: var(--topbar-height);
+            min-height: var(--topbar-height);
         }
         .menu-btn {
             background: var(--button-primary);
             color: white;
             border: none;
-            width: 40px;
-            height: 40px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background 0.2s;
+            flex-shrink: 0;
         }
         .menu-btn:hover {
             background: var(--button-primary-hover);
         }
         .title {
             font-weight: 600;
-            font-size: 1.2rem;
+            font-size: 1rem;
             flex: 1;
+            line-height: 1.2;
         }
         .theme-toggle {
             background: none;
             border: none;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 4px 6px;
             border-radius: 40px;
             transition: 0.2s;
             color: var(--text-primary);
@@ -179,27 +189,42 @@
             background: var(--button-secondary);
         }
 
-        /* 桌面端布局调整：顶部栏一直显示，内容区域左右排列 */
+        /* 桌面端布局调整 */
         @media (min-width: 768px) {
+            :root {
+                --topbar-height: 56px;
+            }
             .app {
-                flex-direction: column;
                 height: 100vh;
             }
             .top-bar {
-                /* 保持可见 */
+                padding: 8px 20px;
+                height: var(--topbar-height);
+                min-height: var(--topbar-height);
+            }
+            .menu-btn {
+                display: none;
+            }
+            .title {
+                font-size: 1.2rem;
+            }
+            .theme-toggle {
+                font-size: 1.4rem;
             }
             .main-content {
                 display: flex;
                 flex: 1;
-                padding: 20px 20px 20px 20px;
+                padding: 16px 20px 20px 20px;
                 gap: 24px;
                 overflow: hidden;
+                min-height: 0;
             }
             .chat-panel {
                 flex: 3;
                 border-radius: 28px;
                 box-shadow: var(--shadow-strong);
                 height: 100%;
+                min-height: 0;
             }
             .config-panel {
                 position: static;
@@ -217,20 +242,54 @@
             .mask {
                 display: none !important;
             }
+        }
+
+        /* 移动端单独调整 */
+        @media (max-width: 767px) {
+            .top-bar {
+                padding: 4px 10px;
+                height: var(--topbar-height);
+                min-height: var(--topbar-height);
+            }
             .menu-btn {
-                display: none; /* 桌面端不需要菜单按钮 */
+                width: 30px;
+                height: 30px;
+                font-size: 1rem;
+            }
+            .title {
+                font-size: 0.9rem;
+            }
+            .theme-toggle {
+                font-size: 1rem;
+                padding: 2px 4px;
+            }
+            .main-content {
+                display: flex;
+                flex: 1;
+                overflow: hidden;
+                min-height: 0;
+            }
+            .chat-panel {
+                border-radius: 0;
+                height: 100%;
+                min-height: 0;
+            }
+            .config-panel {
+                /* 保持抽屉样式 */
             }
         }
 
         .messages {
             flex: 1;
-            padding: 20px;
+            padding: 16px;
             overflow-y: auto;
             background: var(--bg-chat);
             transition: background 0.3s;
+            -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+            min-height: 0; /* 关键：防止flex溢出 */
         }
         .msg {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             display: flex;
             flex-direction: column;
         }
@@ -242,8 +301,8 @@
         }
         .bubble {
             max-width: 85%;
-            padding: 12px 18px;
-            border-radius: 24px;
+            padding: 10px 16px;
+            border-radius: 20px;
             line-height: 1.5;
             word-wrap: break-word;
             white-space: pre-wrap;
@@ -252,24 +311,24 @@
         .msg-user .bubble {
             background: var(--bubble-user-bg);
             color: var(--bubble-user-text);
-            border-bottom-right-radius: 6px;
+            border-bottom-right-radius: 4px;
         }
         .msg-ai .bubble {
             background: var(--bubble-ai-bg);
             color: var(--bubble-ai-text);
-            border-bottom-left-radius: 6px;
+            border-bottom-left-radius: 4px;
         }
         .timestamp {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: var(--text-muted);
-            margin: 4px 8px 0;
+            margin: 3px 6px 0;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
         .edit-icon {
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             opacity: 0.6;
             transition: 0.2s;
         }
@@ -278,17 +337,18 @@
             color: var(--button-primary);
         }
         .input-area {
-            padding: 16px;
+            padding: 10px 16px 12px;
             border-top: 1px solid var(--border-color);
             background: var(--bg-input);
             transition: background 0.3s, border-color 0.3s;
+            flex-shrink: 0;
         }
         textarea#userInput {
             width: 100%;
-            padding: 12px;
+            padding: 10px 14px;
             border: 1px solid var(--input-border);
-            border-radius: 24px;
-            font-size: 0.95rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
             font-family: inherit;
             resize: vertical;
             background: var(--bg-input);
@@ -302,8 +362,8 @@
         }
         .action-buttons {
             display: flex;
-            gap: 12px;
-            margin-top: 12px;
+            gap: 10px;
+            margin-top: 10px;
         }
         .action-buttons button {
             margin-top: 0;
@@ -312,11 +372,12 @@
             background: var(--button-primary);
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 8px 14px;
             border-radius: 40px;
             font-weight: 500;
             cursor: pointer;
             transition: background 0.2s;
+            font-size: 0.85rem;
         }
         .action-buttons button:hover {
             background: var(--button-primary-hover);
@@ -330,21 +391,21 @@
             color: var(--button-danger-text);
         }
         .config-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .config-group label {
             display: block;
             font-weight: 500;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
             color: var(--text-secondary);
         }
         input, textarea, select {
             width: 100%;
-            padding: 10px 12px;
+            padding: 8px 12px;
             border: 1px solid var(--input-border);
-            border-radius: 16px;
-            font-size: 0.9rem;
+            border-radius: 14px;
+            font-size: 0.85rem;
             font-family: inherit;
             background: var(--bg-input);
             color: var(--text-primary);
@@ -367,38 +428,38 @@
             flex: 1;
         }
         .info-text {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-muted);
-            margin-top: 8px;
+            margin-top: 6px;
             text-align: center;
         }
         hr {
-            margin: 15px 0;
+            margin: 12px 0;
             border-color: var(--border-color);
         }
         .tip-toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 16px;
+            right: 16px;
             background: var(--tip-bg);
             color: var(--tip-text);
-            padding: 10px 16px;
+            padding: 8px 14px;
             border-radius: 40px;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             z-index: 1001;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             backdrop-filter: blur(8px);
-            max-width: 260px;
+            max-width: 220px;
             transition: background 0.3s, color 0.3s;
         }
         .tip-toast .close-tip {
             background: none;
             border: none;
             color: var(--tip-text);
-            font-size: 1.2rem;
+            font-size: 1rem;
             cursor: pointer;
             padding: 0 4px;
             margin: 0;
@@ -408,12 +469,13 @@
         .tip-toast .close-tip:hover {
             opacity: 1;
         }
-        @media (max-width: 768px) {
+        @media (min-width: 768px) {
             .tip-toast {
-                bottom: 70px;
-                right: 16px;
-                font-size: 0.7rem;
-                padding: 6px 12px;
+                bottom: 24px;
+                right: 24px;
+                font-size: 0.8rem;
+                padding: 10px 18px;
+                max-width: 280px;
             }
         }
         /* 编辑弹框 */
@@ -447,15 +509,15 @@
             transition: background 0.3s, color 0.3s;
         }
         .edit-modal-content h4 {
-            margin: 0 0 12px 0;
-            font-size: 1.1rem;
+            margin: 0 0 10px 0;
+            font-size: 1rem;
         }
         .edit-modal-content textarea {
             width: 100%;
-            padding: 12px;
+            padding: 10px 12px;
             border: 1px solid var(--edit-modal-border);
-            border-radius: 16px;
-            font-size: 0.95rem;
+            border-radius: 14px;
+            font-size: 0.9rem;
             font-family: inherit;
             resize: vertical;
             max-height: 60vh;
@@ -465,39 +527,51 @@
         }
         .edit-modal-buttons {
             display: flex;
-            gap: 12px;
-            margin-top: 16px;
+            gap: 10px;
+            margin-top: 14px;
         }
         .edit-modal-buttons button {
             flex: 1;
             margin-top: 0;
+            padding: 8px 14px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            border: none;
+            cursor: pointer;
+            background: var(--button-primary);
+            color: white;
+            transition: background 0.2s;
+        }
+        .edit-modal-buttons button:hover {
+            background: var(--button-primary-hover);
         }
         .edit-modal-buttons .cancel-btn {
             background: var(--button-secondary);
             color: var(--button-secondary-text);
         }
-        /* 左侧面板标题行包含主题切换 */
+        /* 左侧面板标题行 */
         .panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .panel-header h3 {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 600;
             border-left: 4px solid var(--button-primary);
-            padding-left: 12px;
+            padding-left: 10px;
         }
         .panel-header .theme-toggle {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
         }
     </style>
 </head>
 <body>
 <div class="app">
-    <!-- 顶部栏（含菜单和主题切换） -->
+    <!-- 顶部栏 -->
     <div class="top-bar">
         <button class="menu-btn" id="menuBtn">☰</button>
         <div class="title">DeepSeek V4</div>
@@ -556,7 +630,7 @@
 
 <!-- 右下角提示 -->
 <div id="tipToast" class="tip-toast">
-    <span>💡 点击消息旁的 ✏️ 可编辑并重发</span>
+    <span>💡 点击 ✏️ 可编辑重发</span>
     <button class="close-tip" id="closeTipBtn">✕</button>
 </div>
 
@@ -592,7 +666,6 @@
     const editTextarea = document.getElementById('editTextarea');
     const editCancelBtn = document.getElementById('editCancelBtn');
     const editConfirmBtn = document.getElementById('editConfirmBtn');
-    // 两个主题切换按钮
     const themeToggleTop = document.getElementById('themeToggleTop');
     const themeToggleSide = document.getElementById('themeToggleSide');
 
@@ -611,9 +684,7 @@
         const current = getPreferredTheme();
         setTheme(current === 'dark' ? 'light' : 'dark');
     }
-    // 初始化主题
     setTheme(getPreferredTheme());
-    // 绑定两个按钮
     themeToggleTop.addEventListener('click', toggleTheme);
     themeToggleSide.addEventListener('click', toggleTheme);
 
